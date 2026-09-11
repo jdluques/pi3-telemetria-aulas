@@ -285,6 +285,83 @@ Todos se ejecutan desde la carpeta `server/` con `uv run gemelo -c config.yaml <
 
 ---
 
+## Parte C-bis — Usar tu propio diagrama de Gaphor (nombres distintos)
+
+No es obligatorio usar el modelo que genera `init-model`. Cada grupo puede
+dibujar **su propio diagrama** en Gaphor, con los nombres de bloque que quiera.
+El bridge escribe la medición en el bloque **buscándolo por su nombre**, así que
+solo hay que decirle qué nombre tiene cada sensor. Eso se hace en la sección
+`naming` del `config.yaml`. También apunta `model_path` a tu archivo.
+
+### Cómo arma el nombre el bridge
+
+Para cada `(aula, sensor)` que llega por MQTT, calcula el nombre esperado con
+estas piezas:
+
+| Sensor (key en el topic MQTT) | `{model}` |
+|-------------------------------|-----------|
+| `inmp441`  | INMP441 |
+| `mhz19b`   | MH-Z19B |
+| `bme280`   | BME280 |
+| `bh1750`   | BH1750 (GY-302) |
+| `mlx90640` | MLX90640 32x24 |
+
+Variables disponibles: `{model}`, `{aula_name}`, `{aula_id}`, `{sensor}`.
+
+### Opción A — Nombres con un patrón → cambia `template`
+
+Si todos tus bloques siguen el mismo patrón (p. ej. `204 · BME280`,
+`204 · MH-Z19B`, …), basta ajustar la plantilla y los nombres de aula:
+
+```yaml
+model_path: ../model/mi_diagrama.gaphor
+
+aulas:
+  - id: aula-A
+    name: "204"          # el nombre que usas en el diagrama
+  - id: aula-B
+    name: "205"
+
+naming:
+  template: "{aula_name} · {model}"   # -> "204 · BME280"
+```
+
+### Opción B — Nombres libres → usa `overrides`
+
+Si cada bloque tiene un nombre arbitrario (sin patrón), mapéalos uno por uno.
+El `override` gana sobre el `template`:
+
+```yaml
+naming:
+  template: "{model} ({aula_name})"   # se usa solo cuando no hay override
+  overrides:
+    - aula: aula-A                     # id del aula (el del topic MQTT)
+      sensor: mhz19b                   # key del sensor (tabla de arriba)
+      element: "Sensor CO2 - Aula 204" # nombre EXACTO del bloque en Gaphor
+    - aula: aula-A
+      sensor: bme280
+      element: "Ambiente T/H/P (204)"
+    - aula: aula-B
+      sensor: bme280
+      element: "BME280 salón B"
+```
+
+### Detalles que importan
+
+- **Nombre exacto:** debe coincidir tal cual (mayúsculas, espacios y acentos).
+  En Gaphor, haz clic en el bloque y copia su nombre del árbol de modelo.
+- **Nombres únicos:** cada bloque a actualizar debe tener nombre único en el
+  modelo; si hay dos iguales, el bridge no sabe a cuál escribir.
+- **Cómo saber si acertaste:** arranca el bridge y mira el log. Si un sensor no
+  encuentra su bloque, avisa con el nombre que estaba buscando:
+  ```
+  Sensores sin bloque en el modelo (revisa nombres): Sensor CO2 - Aula 204
+  ```
+  Compara ese texto con el nombre real de tu bloque y ajusta `template` u
+  `overrides` hasta que la lista quede vacía.
+
+---
+
 ## Parte D — Con el ESP32 real
 
 Esto lo hace el equipo encargado del hardware, pero cualquiera puede seguirlo.
