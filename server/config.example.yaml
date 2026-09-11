@@ -1,0 +1,69 @@
+# Configuración del bridge del gemelo digital.
+# Copia este archivo como  config.yaml  y ajústalo a tu entorno.
+#   cp config.example.yaml config.yaml
+
+# ---------------------------------------------------------------------------
+# Broker MQTT (por ahora en local: Mosquitto en tu laptop)
+# ---------------------------------------------------------------------------
+mqtt:
+  host: localhost        # IP del equipo donde corre Mosquitto (ver GUIA_DE_USO)
+  port: 1883
+  base_topic: gemelo     # prefijo de todos los topics: gemelo/<aula>/<sensor>
+  # username:            # descomenta si tu broker exige autenticación
+  # password:
+
+# ---------------------------------------------------------------------------
+# Almacenamiento e integración con Gaphor
+# ---------------------------------------------------------------------------
+db_path: gemelo.sqlite3                 # base de datos con el histórico
+model_path: ../model/gemelo_aulas.gaphor  # archivo que abrirás en Gaphor
+sync_interval: 10                        # segundos entre escrituras al modelo
+
+# ---------------------------------------------------------------------------
+# Aulas del gemelo (una columna en el diagrama por aula)
+# ---------------------------------------------------------------------------
+aulas:
+  - id: aula-A
+    name: Aula A
+  - id: aula-B
+    name: Aula B
+
+# ---------------------------------------------------------------------------
+# Cómo se llaman los bloques en Gaphor.
+# El bridge busca el bloque por nombre para escribirle la medición.
+# Debe coincidir con lo que genera 'init-model' (por defecto ya coincide).
+# ---------------------------------------------------------------------------
+naming:
+  template: "{model} ({aula_name})"   # p. ej. "BME280 (Aula A)"
+  # overrides:                        # solo si renombras un bloque a mano:
+  #   - aula: aula-A
+  #     sensor: bme280
+  #     element: "Sensor ambiental principal"
+
+# ---------------------------------------------------------------------------
+# Umbrales del dashboard: qué se considera normal / advertencia / alerta.
+#
+# NO es obligatorio: ya hay defaults sensatos en el código
+# (server/gemelo/thresholds.py). Esta sección solo SOBREESCRIBE lo que indiques;
+# lo que no pongas conserva el default. Campos por métrica:
+#   ok_min / ok_max        -> rango cómodo (verde)
+#   alert_min / alert_max  -> más allá = alerta (rojo); entre medio = adv. (ámbar)
+#   bar_min / bar_max       -> escala visual de la barra (medidor)
+#
+# Métricas con umbral por defecto: temp_c, mean_c, min_c, max_c, hum_pct,
+# co2_ppm, spl_db, lux.
+# Sin color por defecto (informativas): pres_hpa, occupancy_est. La presión es
+# casi constante y no tiene rango "bueno/malo"; por eso se muestra solo como
+# valor. Puedes darle umbral a cualquiera definiéndola aquí (p. ej. occupancy).
+# ---------------------------------------------------------------------------
+# thresholds:
+#   temp_c:
+#     ok_min: 20
+#     ok_max: 25
+#   co2_ppm:
+#     alert_max: 1000        # más estricto que el default (1200)
+#   occupancy_est:           # métrica sin umbral por defecto: aquí le damos uno
+#     ok_max: 30
+#     alert_max: 40
+#     bar_min: 0
+#     bar_max: 45

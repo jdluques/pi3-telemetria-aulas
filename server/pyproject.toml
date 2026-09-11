@@ -1,0 +1,29 @@
+[project]
+name = "gemelo-aulas"
+version = "0.1.0"
+description = "Bridge ESP32/MQTT -> Gaphor + dashboard para el gemelo digital de aulas (PI3)."
+requires-python = ">=3.12,<3.15"   # rango soportado por Gaphor 3.2+
+dependencies = [
+    "paho-mqtt>=1.6,<3",
+    "PyYAML>=6.0",
+    "gaphor>=3.0",
+]
+
+[project.scripts]
+gemelo = "gemelo.cli:main"
+
+# Dependencias solo para desarrollo/pruebas (se instalan con 'uv sync').
+# 'amqtt' es un broker MQTT en Python puro, útil para probar sin instalar
+# Mosquitto (ver tools/broker_local.py).
+[dependency-groups]
+dev = ["pytest>=7.0", "amqtt>=0.11"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gemelo"]
+
+[tool.pytest.ini_options]
+testpaths = ["../tests"]

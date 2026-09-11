@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Datos y config local (no versionar)
+server/config.yaml
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+gemelo.sqlite3
+
+# Modelo de Gaphor: cada equipo genera el suyo con 'init-model' (no se versiona)
+model/*.gaphor
+
+# Excel de instrumentación (material del curso, no se versiona)
+*.xlsx
+
+# Config local de Claude Code
+.claude/settings.local.json
+
+# Editores
+.vscode/
+.idea/
+*.swp
