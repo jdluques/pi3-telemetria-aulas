@@ -19,6 +19,13 @@ db_path: gemelo.sqlite3                 # base de datos con el histórico
 model_path: ../model/gemelo_aulas.gaphor  # archivo que abrirás en Gaphor
 sync_interval: 10                        # segundos entre escrituras al modelo
 
+# Dónde mostrar la medición en el bloque de Gaphor (ver docs/MODELO_GAPHOR.md):
+#   values (default) -> como value properties DENTRO del bloque (SysML)
+#   note             -> en el campo Nota del elemento
+#   both             -> en ambos
+gaphor:
+  display: values
+
 # ---------------------------------------------------------------------------
 # Aulas del gemelo (una columna en el diagrama por aula)
 # ---------------------------------------------------------------------------

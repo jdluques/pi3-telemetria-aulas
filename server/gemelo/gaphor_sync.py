@@ -6,17 +6,20 @@ El gemelo digital está *modelado* en Gaphor como un diagrama SysML: cada
 sensor de cada aula es un ``Block``. Gaphor NO recibe MQTT ni datos en vivo por
 sí mismo: es una herramienta de modelado, no un servidor. Lo que hacemos es
 abrir el archivo ``.gaphor`` con la API de Python de Gaphor, escribir el último
-valor de cada sensor en el campo **Nota** (``note``) de su Block, y volver a
-guardar el archivo.
+valor de cada sensor y volver a guardar el archivo.
 
-Así, al abrir (o recargar) el modelo en Gaphor, la Nota de cada bloque muestra
-la medición actual: ``BME280 (Aula A)`` → "Temperatura: 23.4 °C ...".
+Dónde se escribe el valor (configurable con ``gaphor.display``):
 
-El campo ``note`` se eligió porque:
-* existe en TODOS los elementos de Gaphor,
-* es visible en el panel de propiedades ("Note"),
-* admite texto libre y sobrevive al guardar/cargar,
-* no exige pelear con el metamodelo de ValueSpecification de SysML.
+* ``values`` (por defecto): como **value properties** de SysML, DENTRO del
+  bloque, en el compartimento "values" (``Temperatura: °C = 23.4``). Es la
+  forma idiomática de SysML. El bridge **crea automáticamente** las propiedades
+  que falten (una por métrica) y activa el compartimento, así que basta con que
+  el bloque tenga el nombre correcto — aunque el diagrama lo haya dibujado el
+  alumno a mano. Ver docs/MODELO_GAPHOR.md.
+* ``note``: en el campo Nota del elemento (texto libre).
+* ``both``: en ambos.
+
+El emparejamiento bloque↔sensor es **por nombre** (ver ``config.naming``).
 
 La escritura al archivo es atómica (archivo temporal + reemplazo) para no
 corromper el modelo si algo falla a mitad de camino.
@@ -31,6 +34,15 @@ from pathlib import Path
 
 from .config import Config
 from .models import SENSORS, SensorSpec
+
+# Nombre y unidad de la value property que guarda la hora de la última lectura.
+UPDATED_LABEL = "Actualizado"
+UPDATED_UNIT = "hora"
+
+
+def format_value(value: float) -> str:
+    """Formatea un número para mostrarlo (sin ceros de más): 55.0 -> '55'."""
+    return f"{value:g}"
 
 
 # Marcador que delimita el bloque de datos vivos dentro de la Nota. Todo lo que
@@ -82,15 +94,22 @@ class GaphorModel:
     """
 
     def __init__(self, path: str):
-        # Imports perezosos de Gaphor.
+        # Imports perezosos de Gaphor (así el paquete se importa sin Gaphor).
         from gaphor.core.modeling import ElementFactory
         from gaphor.core.eventmanager import EventManager
         from gaphor.services.modelinglanguage import ModelingLanguageService
         from gaphor.storage import storage as gaphor_storage
         from gaphor.transaction import Transaction
+        from gaphor.SysML import sysml
+        from gaphor.UML import uml as UML
+        from gaphor.UML import recipes
 
         self._Transaction = Transaction
         self._storage = gaphor_storage
+        self._sysml = sysml
+        self._UML = UML
+        self._recipes = recipes
+        self._vt_cache: dict[str, object] = {}   # unidad -> ValueType (idempotencia)
 
         self.path = path
         self.event_manager = EventManager()
@@ -116,6 +135,76 @@ class GaphorModel:
         with self._Transaction(self.event_manager):
             element.note = merge_note(getattr(element, "note", ""), text)
 
+    # -- value properties (datos dentro del bloque) -----------------------
+
+    def _value_type(self, unit: str):
+        """Devuelve el ``ValueType`` de una unidad, reutilizándolo (idempotente)."""
+        if unit in self._vt_cache:
+            return self._vt_cache[unit]
+        for vt in self.element_factory.select(
+            lambda e: isinstance(e, self._sysml.ValueType) and e.name == unit
+        ):
+            self._vt_cache[unit] = vt
+            return vt
+        vt = self.element_factory.create(self._sysml.ValueType)
+        vt.name = unit
+        self._vt_cache[unit] = vt
+        return vt
+
+    def _get_or_create_property(self, block, label: str, unit: str):
+        """Property de valor del bloque, por nombre; la crea si falta.
+
+        Para que aparezca en el compartimento "values" de SysML necesita
+        ``type`` = un ValueType y ``aggregation == 'composite'``.
+        """
+        for p in block.ownedAttribute:
+            if p.name == label:
+                return p
+        prop = self.element_factory.create(self._UML.Property)
+        prop.name = label
+        prop.type = self._value_type(unit)
+        prop.aggregation = "composite"
+        block.ownedAttribute = prop
+        return prop
+
+    def set_values(self, element, spec: SensorSpec | None,
+                   metrics: dict[str, float], ts: datetime) -> bool:
+        """Escribe las mediciones como value properties dentro del bloque.
+
+        Crea las propiedades y el ValueType que falten, actualiza su valor y
+        activa el compartimento ``show_values`` en todas las presentaciones del
+        bloque. Devuelve ``True`` si el elemento admite value properties.
+        """
+        if not hasattr(element, "ownedAttribute"):
+            return False  # el elemento no es un Block/Classifier
+
+        # Orden de métricas: las de la ficha del sensor primero, luego extras.
+        items: list[tuple[str, str, float]] = []
+        seen = set()
+        if spec is not None:
+            for m in spec.metrics:
+                if m.key in metrics:
+                    items.append((m.label, m.unit, metrics[m.key]))
+                    seen.add(m.key)
+        for k, v in metrics.items():
+            if k not in seen:
+                items.append((k, "", v))
+
+        with self._Transaction(self.event_manager):
+            for label, unit, value in items:
+                prop = self._get_or_create_property(element, label, unit)
+                self._recipes.set_default_value_from_string(prop, format_value(value))
+            # Marca de tiempo, también dentro del bloque.
+            upd = self._get_or_create_property(element, UPDATED_LABEL, UPDATED_UNIT)
+            self._recipes.set_default_value_from_string(
+                upd, f"{ts.astimezone():%H:%M:%S}"
+            )
+            # Mostrar el compartimento de valores en cada diagrama.
+            for pres in element.presentation:
+                if hasattr(pres, "show_values"):
+                    pres.show_values = True
+        return True
+
     def save(self) -> None:
         """Guarda el modelo de forma atómica en ``self.path``."""
         target = Path(self.path)
@@ -140,6 +229,7 @@ def sync(config: Config,
     Devuelve un pequeño resumen ``{"updated": [...], "missing": [...]}`` útil
     para logs y para los tests.
     """
+    display = getattr(config, "display", "values")
     model = GaphorModel(config.model_path)
     by_name = model.named_elements()
 
@@ -154,8 +244,10 @@ def sync(config: Config,
         if element is None:
             missing.append(name)
             continue
-        note = format_note(spec, metrics, ts, sensor)
-        model.set_note(element, note)
+        if display in ("values", "both"):
+            model.set_values(element, spec, metrics, ts)
+        if display in ("note", "both"):
+            model.set_note(element, format_note(spec, metrics, ts, sensor))
         updated.append(name)
 
     if updated:

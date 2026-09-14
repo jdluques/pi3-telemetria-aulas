@@ -37,6 +37,12 @@ class Config:
     model_path: str = "model/gemelo_aulas.gaphor"
     sync_interval: float = 10.0          # segundos entre escrituras al modelo
 
+    # Dónde mostrar la medición en el bloque de Gaphor:
+    #   "values" (default) -> value properties DENTRO del bloque (SysML)
+    #   "note"             -> en el campo Nota del elemento
+    #   "both"             -> en ambos
+    display: str = "values"
+
     # --- Aulas ---
     aulas: list[AulaCfg] = field(default_factory=lambda: [
         AulaCfg("aula-A", "Aula A"),
@@ -121,6 +127,9 @@ def _merge(cfg: Config, data: dict) -> None:
     cfg.db_path = data.get("db_path", cfg.db_path)
     cfg.model_path = data.get("model_path", cfg.model_path)
     cfg.sync_interval = float(data.get("sync_interval", cfg.sync_interval))
+
+    gaphor_cfg = data.get("gaphor", {}) or {}
+    cfg.display = gaphor_cfg.get("display", cfg.display)
 
     if "aulas" in data and data["aulas"]:
         cfg.aulas = [AulaCfg(a["id"], a.get("name", a["id"])) for a in data["aulas"]]

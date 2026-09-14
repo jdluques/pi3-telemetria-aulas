@@ -5,8 +5,12 @@ código con la API de Gaphor: un ``Block`` SysML por cada aula y un ``Block``
 por cada sensor de cada aula, todos colocados en un diagrama para que el
 equipo pueda abrirlo y verlo de inmediato.
 
-Cada bloque de sensor arranca con una Nota "sin datos"; el bridge la irá
-actualizando con las mediciones reales (ver ``gaphor_sync.py``).
+Cada bloque de sensor arranca con:
+* una **value property por métrica** (vacía, "—") en el compartimento "values"
+  de SysML, que el bridge irá rellenando con las mediciones reales, y
+* una **Nota** con la descripción estática del sensor (modelo, interfaz, qué mide).
+
+Ver ``gaphor_sync.py`` para cómo se actualizan los valores.
 """
 
 from __future__ import annotations
@@ -17,7 +21,6 @@ from pathlib import Path
 
 from .config import Config
 from .models import SENSORS
-from .gaphor_sync import LIVE_MARKER
 
 
 # Distribución del diagrama (coordenadas simples en rejilla).
@@ -36,12 +39,30 @@ def build_model(config: Config, out_path: str | None = None) -> str:
     from gaphor.storage import storage as gaphor_storage
     from gaphor.transaction import Transaction
     from gaphor.SysML import sysml
+    from gaphor.UML import uml as UML
+    from gaphor.UML import recipes
     from gaphor.diagram.drop import drop
 
     out_path = out_path or config.model_path
     event_manager = EventManager()
     modeling_language = ModelingLanguageService(event_manager=event_manager)
     factory = ElementFactory(event_manager)
+    vt_cache: dict[str, object] = {}       # unidad -> ValueType (reutilizado)
+
+    def value_type(unit: str):
+        if unit not in vt_cache:
+            vt = factory.create(sysml.ValueType)
+            vt.name = unit
+            vt_cache[unit] = vt
+        return vt_cache[unit]
+
+    def add_value_property(block, label: str, unit: str):
+        prop = factory.create(UML.Property)
+        prop.name = label
+        prop.type = value_type(unit)
+        prop.aggregation = "composite"
+        recipes.set_default_value_from_string(prop, "—")   # valor inicial
+        block.ownedAttribute = prop
 
     with Transaction(event_manager):
         pkg = factory.create(sysml.uml.Package) if hasattr(sysml, "uml") else None
@@ -61,31 +82,31 @@ def build_model(config: Config, out_path: str | None = None) -> str:
             _try_own(aula_block, pkg)
             drop(aula_block, diagram, x=aula_x, y=_AULA_Y)
 
-            # Un bloque por sensor.
+            # Un bloque por sensor, con value properties visibles.
             for row, (key, spec) in enumerate(SENSORS.items()):
                 block = factory.create(sysml.Block)
                 block.name = config.element_name(aula.id, key, spec.model)
-                block.note = _initial_note(spec)
+                block.note = _description_note(spec)     # descripción estática
                 _try_own(block, pkg)
-                drop(
-                    block,
-                    diagram,
-                    x=aula_x,
-                    y=_SENSORS_Y0 + row * _SENSOR_Y_GAP,
-                )
+                for m in spec.metrics:
+                    add_value_property(block, m.label, m.unit)
+                item = drop(block, diagram, x=aula_x,
+                            y=_SENSORS_Y0 + row * _SENSOR_Y_GAP)
+                if hasattr(item, "show_values"):
+                    item.show_values = True              # muestra el compartimento
 
     _atomic_save(gaphor_storage, factory, out_path)
     return out_path
 
 
-def _initial_note(spec) -> str:
+def _description_note(spec) -> str:
+    """Descripción estática del sensor (los datos vivos van en value properties)."""
     metricas = ", ".join(f"{m.label} [{m.unit}]" for m in spec.metrics)
     return (
         f"Sensor {spec.model} — {spec.category}\n"
         f"Interfaz: {spec.interface}\n"
-        f"Mide: {metricas}\n\n"
-        f"{LIVE_MARKER}\n"
-        "Sin datos todavía."
+        f"Mide: {metricas}\n"
+        f"{spec.purpose}"
     )
 
 
