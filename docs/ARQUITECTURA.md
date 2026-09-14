@@ -24,7 +24,7 @@ separado.
                                                                                    ┌────────────────────┐
                                                                                    │  model/*.gaphor     │
                                                                                    │  (Blocks SysML con  │
-                                                                                   │   Nota = medición)  │
+                                                                                   │  values = medición) │
                                                                                    └────────────────────┘
 ```
 
@@ -40,15 +40,20 @@ Por eso, el gemelo digital se separa en dos ideas:
 - **Estructura (diseño):** el modelo SysML en Gaphor — las aulas y sus
   sensores como bloques (`Block`). Es estable y lo edita el equipo.
 - **Estado (datos en vivo):** las mediciones. Se guardan en SQLite y se
-  "proyectan" sobre el modelo escribiendo el último valor de cada sensor en el
-  campo **Nota** (`note`) de su bloque.
+  "proyectan" sobre el modelo como **value properties** de SysML dentro de cada
+  bloque (compartimento *values*: `Temperatura: °C = 23.4`).
 
-### ¿Por qué el campo `note` y no un "value property" de SysML?
+### Value properties (dentro del bloque)
 
-`note` existe en **todos** los elementos de Gaphor, es visible en el panel de
-propiedades, admite texto libre y sobrevive a guardar/cargar. Escribir en las
-`ValueSpecification` del metamodelo SysML es mucho más frágil entre versiones.
-`note` es la vía robusta y suficiente para mostrar "estado actual".
+Por defecto (`gaphor.display: values`) el bridge escribe cada métrica como una
+*value property* SysML en el bloque del sensor: crea la `UML.Property` (tipada
+con un `sysml.ValueType` por unidad y `aggregation="composite"`), fija su
+`defaultValue` con `recipes.set_default_value_from_string`, y activa
+`show_values` en el `BlockItem`. Todo es **idempotente**: reutiliza properties y
+ValueTypes por nombre para no inflar el modelo en cada sync. Si el bloque lo
+dibujó un alumno sin properties, se crean automáticamente (ver
+`docs/MODELO_GAPHOR.md`). Se conserva un modo `note` (texto en el campo Nota)
+como alternativa/compatibilidad; la Nota se usa para la descripción estática.
 
 El bridge **conserva** cualquier texto que el equipo escriba manualmente por
 encima del marcador `── Datos en vivo (gemelo digital) ──`; solo reemplaza la
@@ -62,8 +67,8 @@ sección de datos vivos.
 | `config.py` | Carga `config.yaml` + variables de entorno. |
 | `storage.py` | SQLite thread-safe: guarda el histórico y responde "último valor". |
 | `mqtt_ingest.py` | Cliente MQTT (paho); convierte mensajes en `Reading`. |
-| `gaphor_sync.py` | Abre el `.gaphor`, escribe las Notas, guarda de forma atómica. |
-| `model_builder.py` | Genera el `.gaphor` inicial (bloques + diagrama). |
+| `gaphor_sync.py` | Abre el `.gaphor`, escribe las value properties (o la Nota), guarda de forma atómica. |
+| `model_builder.py` | Genera el `.gaphor` inicial (bloques con value properties + diagrama). |
 | `bridge.py` | Orquesta: ingest → storage → sync periódico. |
 | `cli.py` | Línea de comandos (`run`, `init-model`, `sync-once`, `simulate`, `latest`, `dashboard`). |
 | `tools_simulate.py` | Publica datos falsos para probar sin hardware. |
@@ -107,5 +112,5 @@ archivo XML: reescribirlo por cada lectura sería costoso e innecesario.
 2. `mqtt_ingest` valida y crea un `Reading`.
 3. `storage.insert` guarda una fila por métrica.
 4. A los ≤ `sync_interval` s, `gaphor_sync.sync` busca el bloque
-   `"BME280 (Aula A)"`, arma la Nota y guarda el `.gaphor`.
+   `"BME280 (Aula A)"`, escribe las value properties y guarda el `.gaphor`.
 5. El equipo recarga el modelo en Gaphor y ve `Temperatura: 23.4 °C`.

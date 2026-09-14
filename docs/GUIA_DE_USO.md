@@ -183,10 +183,16 @@ uv run gaphor ../model/gemelo_aulas.gaphor
 
 En Gaphor:
 1. Abre el diagrama **"Gemelo Digital - Aulas"** (doble clic en el árbol de la izquierda).
-2. Haz clic en un bloque, p. ej. **"BME280 (Aula A)"**.
-3. En el panel derecho, la sección **Note** muestra la medición actual.
-4. Para ver valores nuevos, **cierra y reabre** el modelo (o vuelve a abrir el
+2. Mira el bloque de un sensor, p. ej. **"BME280 (Aula A)"**: la medición actual
+   aparece **dentro del bloque**, en el compartimento *values*
+   (`Temperatura: °C = 23.4`, `Humedad relativa: % = 55`, …), más `Actualizado`
+   con la hora. La sección **Note** del panel derecho guarda la descripción del sensor.
+3. Para ver valores nuevos, **cierra y reabre** el modelo (o vuelve a abrir el
    archivo): Gaphor no recarga solo mientras el bridge escribe por debajo.
+
+> ¿Quieres tu propio diagrama con otros nombres? El bridge crea y rellena esas
+> value properties solo; tú solo aseguras el nombre del bloque. Ver
+> **[MODELO_GAPHOR.md](MODELO_GAPHOR.md)**.
 
 > ¿Solo quieres una foto puntual sin dejar el bridge corriendo? Usa
 > `uv run gemelo -c config.yaml sync-once` y luego abre Gaphor.

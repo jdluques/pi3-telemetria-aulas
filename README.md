@@ -15,7 +15,7 @@ las lleva, en vivo, hasta dos vistas del gemelo:
    Sensores            ESP32              Broker MQTT           Servidor (este repo)        Vistas del gemelo
  ┌──────────┐      ┌───────────┐        ┌────────────┐       ┌──────────────────┐       ┌──────────────────┐
  │ BME280   │─I2C─▶│           │        │            │       │  MQTT  ─▶ SQLite │       │  Gapho (.gaphor) │
- │ BH1750   │─I2C─▶│  ESP32    │  WiFi  │  Mosquitto │       │           │      │──────▶│  Blocks con Notas │
+ │ BH1750   │─I2C─▶│  ESP32    │  WiFi  │  Mosquitto │       │           │      │──────▶│  Blocks c/ values │
  │ MH-Z19B  │─UART▶│  DevKit   │──────▶ │ (en la red │──────▶│           ▼      │       ├──────────────────┤
  │ MLX90640 │─I2C─▶│           │  MQTT  │  local)    │  MQTT │      gaphor_sync │──────▶│  Dashboard web    │
  │ INMP441  │─I2S─▶│           │        │            │       │      dashboard   │       │  (tiempo real)    │
@@ -38,8 +38,8 @@ y el **estado** (cómo está ahora mismo).
 4. El programa de este repositorio —el **bridge**— se suscribe al broker,
    guarda todo en una base de datos **SQLite** (el histórico) y proyecta el
    estado sobre las dos vistas:
-   - escribe el último valor de cada sensor en la **Nota** de su bloque en el
-     `.gaphor`, y
+   - escribe el último valor de cada sensor **dentro de su bloque** en el
+     `.gaphor`, como *value properties* de SysML (`Temperatura: °C = 23.4`), y
    - lo sirve en un **dashboard web** que se actualiza cada 2 segundos.
 
 > **¿Por qué hace falta un "bridge"?** Gaphor es una herramienta de *modelado*:
@@ -96,8 +96,8 @@ uv run gemelo -c config.yaml simulate
 uv run gemelo -c config.yaml dashboard
 ```
 
-Después abre `model/gemelo_aulas.gaphor` con **Gaphor** para ver las Notas de
-cada bloque, y/o el **dashboard** en el navegador para el estado en vivo.
+Después abre `model/gemelo_aulas.gaphor` con **Gaphor** para ver los valores
+dentro de cada bloque, y/o el **dashboard** en el navegador para el estado en vivo.
 
 > **Nota:** todos los comandos se ejecutan con `uv run gemelo ...` desde la
 > carpeta `server/`. `uv run` usa el entorno del proyecto automáticamente; no
@@ -165,6 +165,7 @@ Desde `server/`, con `uv run gemelo -c config.yaml <comando>`:
 | Documento | Para qué |
 |-----------|----------|
 | [GUIA_DE_USO.md](docs/GUIA_DE_USO.md) | Instalar y correr todo, paso a paso (todas las carreras) |
+| [MODELO_GAPHOR.md](docs/MODELO_GAPHOR.md) | Definir tu propio modelo y cómo los datos aparecen dentro del bloque |
 | [ARQUITECTURA.md](docs/ARQUITECTURA.md) | Cómo funciona por dentro y por qué |
 | [PROTOCOLO_MQTT.md](docs/PROTOCOLO_MQTT.md) | Contrato de topics y JSON entre ESP32 y servidor |
 | [SENSORES.md](docs/SENSORES.md) | Qué mide cada sensor y en qué unidades |

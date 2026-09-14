@@ -56,5 +56,7 @@ tiempo encendido (`uptime_s`).
 
 Cada fila (sensor) de cada aula se representa como un `Block` de SysML llamado,
 por defecto, `"<Modelo> (<Nombre del aula>)"` — por ejemplo `BME280 (Aula A)`.
-El bridge escribe la última medición en la **Nota** de ese bloque. Puedes
-cambiar el patrón de nombres en `config.yaml → naming`.
+El bridge escribe la última medición **dentro del bloque**, como *value
+properties* de SysML (`Temperatura: °C = 23.4`), creándolas automáticamente.
+Puedes cambiar el patrón de nombres en `config.yaml → naming` y usar tu propio
+diagrama: ver **[MODELO_GAPHOR.md](MODELO_GAPHOR.md)**.
