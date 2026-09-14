@@ -54,8 +54,11 @@ def test_flujo_completo_mqtt_a_gaphor(tmp_path):
         result = bridge.sync_now()
         assert "BME280 (Aula A)" in result["updated"]
 
+        # El valor quedó como value property DENTRO del bloque.
+        from gaphor.UML.umlfmt import format_property
         model = GaphorModel(cfg.model_path)
-        note = model.named_elements()["BME280 (Aula A)"].note
-        assert "26.1 °C" in note
+        block = model.named_elements()["BME280 (Aula A)"]
+        props = {p.name: format_property(p) for p in block.ownedAttribute}
+        assert "26.1" in props["Temperatura"]
     finally:
         bridge.stop()
