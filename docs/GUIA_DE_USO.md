@@ -16,9 +16,13 @@ Hay **dos formas de probarlo**:
 
 ## ⚡ Ruta más rápida (ver el dashboard en 5 minutos, sin hardware)
 
-Si solo quieres **ver el gemelo funcionando ya**, copia y pega esto. Necesitas
-tener **uv** instalado (ver [A.1](#a1-uv-gestor-de-python-y-dependencias)); no
-hace falta ni Mosquitto ni el ESP32.
+**Lo más fácil (un solo paso):** en **Windows**, doble clic en
+`scripts\demo.bat`; en **macOS/Linux**, `bash scripts/demo.sh`. Levanta todo y
+abre el navegador. `Ctrl-C` detiene todo. (Instala `uv` y las dependencias solo.)
+
+Si prefieres hacerlo a mano, copia y pega lo de abajo. Necesitas **uv**
+instalado (ver [A.1](#a1-uv-gestor-de-python-y-dependencias)); no hace falta ni
+Mosquitto ni el ESP32.
 
 **Preparación (una sola vez):**
 ```bash
@@ -119,9 +123,14 @@ cd server
 uv sync
 ```
 
-`uv sync` lee `pyproject.toml` / `uv.lock`, crea el entorno y instala todo: el
-bridge, el cliente MQTT, **Gaphor** (la herramienta de modelado) y las
-herramientas de prueba. La primera vez tarda un poco (descarga Gaphor).
+`uv sync` lee `pyproject.toml` / `uv.lock`, crea el entorno e instala las
+dependencias: el bridge, el cliente MQTT, el broker local y el dashboard. Es
+**Python puro**: no compila nada ni instala Gaphor.
+
+> Para **ver** el modelo se usa la **app de escritorio de Gaphor** (instalador
+> oficial, sin MSYS/GTK): <https://gaphor.org/download/>. El bridge genera y
+> actualiza el `.gaphor` por su cuenta, así que no hace falta instalar Gaphor
+> por pip. Detalles por sistema operativo en [INSTALACION.md](INSTALACION.md).
 
 ---
 
@@ -174,12 +183,10 @@ Empezará a publicar datos. En la Terminal 1 verás llegar las lecturas y, cada
 
 ### B.5 Ver los datos en Gaphor (Terminal 3 o el menú de apps)
 
-```bash
-# desde server/ (usa el Gaphor instalado por uv):
-uv run gaphor ../model/gemelo_aulas.gaphor
-```
-> Si instalaste Gaphor aparte (app de escritorio), también puedes abrir el
-> archivo `model/gemelo_aulas.gaphor` con doble clic.
+Abre el archivo `model/gemelo_aulas.gaphor` con la **app de escritorio de
+Gaphor** (instálala desde <https://gaphor.org/download/>; en Windows/macOS es un
+instalador normal, sin MSYS ni build tools). Basta doble clic en el archivo, o
+*Archivo → Abrir* dentro de Gaphor.
 
 En Gaphor:
 1. Abre el diagrama **"Gemelo Digital - Aulas"** (doble clic en el árbol de la izquierda).
@@ -429,7 +436,8 @@ mosquitto_sub -h localhost -t "gemelo/#" -v
 | El bridge dice `Sensores sin bloque en el modelo` | El nombre del bloque en Gaphor no coincide con el esperado. Regenera el modelo (`init-model --force`) o ajusta `naming` en `config.yaml`. |
 | `No existe el modelo ...` | Falta generar el modelo: `uv run gemelo -c config.yaml init-model`. |
 | Gaphor no muestra los valores nuevos | Es normal: recarga/reabre el modelo. Gaphor no auto-refresca. |
-| `command not found: gaphor` o `gemelo` | Faltó `uv sync`, o no estás usando `uv run`. Ejecuta los comandos como `uv run gemelo ...` / `uv run gaphor ...` desde `server/`. |
+| `command not found: gemelo` | Faltó `uv sync`, o no estás usando `uv run`. Ejecuta los comandos como `uv run gemelo ...` desde `server/`. |
+| Quiero ver el modelo y no tengo Gaphor | Instala la app de escritorio: <https://gaphor.org/download/> (no se instala por pip). |
 | `uv: command not found` | Reinstala uv (Parte A.1) y reabre la terminal para que tome el PATH. |
 | El ESP32 no compila | Desactiva (`ENABLE_XXX 0`) los sensores cuyas librerías aún no instalaste. |
 | Lecturas de CO2 raras al inicio (MH-Z19B) | El sensor necesita ~3 min de calentamiento. Es normal. |

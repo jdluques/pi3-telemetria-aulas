@@ -46,14 +46,19 @@ Por eso, el gemelo digital se separa en dos ideas:
 ### Value properties (dentro del bloque)
 
 Por defecto (`gaphor.display: values`) el bridge escribe cada métrica como una
-*value property* SysML en el bloque del sensor: crea la `UML.Property` (tipada
-con un `sysml.ValueType` por unidad y `aggregation="composite"`), fija su
-`defaultValue` con `recipes.set_default_value_from_string`, y activa
-`show_values` en el `BlockItem`. Todo es **idempotente**: reutiliza properties y
-ValueTypes por nombre para no inflar el modelo en cada sync. Si el bloque lo
-dibujó un alumno sin properties, se crean automáticamente (ver
-`docs/MODELO_GAPHOR.md`). Se conserva un modo `note` (texto en el campo Nota)
-como alternativa/compatibilidad; la Nota se usa para la descripción estática.
+*value property* SysML en el bloque del sensor: crea el elemento `Property`
+(tipado con un `ValueType` por unidad y `aggregation="composite"`), su
+`LiteralString` de valor por defecto, y activa `show_values` en el `BlockItem`.
+Todo esto se hace **editando el XML del `.gaphor` con la biblioteca estándar de
+Python** (`gaphor_xml.py`) — sin la librería de Gaphor, por lo que corre en
+cualquier SO sin compilar. Es **idempotente**: reutiliza properties y ValueTypes
+por nombre para no inflar el modelo en cada sync. Si el bloque lo dibujó un
+alumno sin properties, se crean automáticamente (ver `docs/MODELO_GAPHOR.md`).
+Se conserva un modo `note` como alternativa/compatibilidad.
+
+Un test de *round-trip* carga cada `.gaphor` generado con la **librería real de
+Gaphor** para garantizar que abre correctamente (red de seguridad ante cambios
+del formato).
 
 El bridge **conserva** cualquier texto que el equipo escriba manualmente por
 encima del marcador `── Datos en vivo (gemelo digital) ──`; solo reemplaza la
@@ -67,8 +72,9 @@ sección de datos vivos.
 | `config.py` | Carga `config.yaml` + variables de entorno. |
 | `storage.py` | SQLite thread-safe: guarda el histórico y responde "último valor". |
 | `mqtt_ingest.py` | Cliente MQTT (paho); convierte mensajes en `Reading`. |
-| `gaphor_sync.py` | Abre el `.gaphor`, escribe las value properties (o la Nota), guarda de forma atómica. |
-| `model_builder.py` | Genera el `.gaphor` inicial (bloques con value properties + diagrama). |
+| `gaphor_xml.py` | **Escritor/editor del `.gaphor` en Python puro** (stdlib `xml.etree`, sin GTK): genera el modelo y crea/actualiza las value properties. Funciona en Win/mac/Linux sin compilar. |
+| `gaphor_sync.py` | Delega en `gaphor_xml`; conserva un lector con la librería real de Gaphor solo para los tests de validación. |
+| `model_builder.py` | Genera el `.gaphor` inicial (delega en `gaphor_xml`). |
 | `bridge.py` | Orquesta: ingest → storage → sync periódico. |
 | `cli.py` | Línea de comandos (`run`, `init-model`, `sync-once`, `simulate`, `latest`, `dashboard`). |
 | `tools_simulate.py` | Publica datos falsos para probar sin hardware. |

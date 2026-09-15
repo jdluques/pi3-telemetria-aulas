@@ -56,45 +56,44 @@ y el **estado** (cómo está ahora mismo).
 
 ## Lo que necesitas
 
-- **Python 3.12–3.14** y **[uv](https://docs.astral.sh/uv/)** (gestor de
-  entornos y dependencias; instalación abajo).
-- Un **broker MQTT** (Mosquitto) en la laptop que hará de servidor.
-- **Gaphor** (se instala automáticamente con las dependencias).
-- Opcional: los **ESP32 + sensores**. Sin hardware puedes probar todo con el
+- **Nada nativo ni compiladores.** Todo el sistema es **Python puro** y
+  funciona en **Windows, macOS y Linux**; solo necesitas
+  **[uv](https://docs.astral.sh/uv/)** (instala Python y las dependencias por ti).
+- Opcional, solo para *ver* el modelo: la **app de escritorio de Gaphor**
+  ([descargas oficiales](https://gaphor.org/download/), sin MSYS ni build tools).
+- Opcional: los **ESP32 + sensores**. Sin hardware, pruebas todo con el
   **simulador** incluido.
 
-Guía de instalación detallada, paso a paso y para cualquier carrera:
+Instalación detallada por sistema operativo (y errores comunes):
+**[docs/INSTALACION.md](docs/INSTALACION.md)**. Guía de uso paso a paso:
 **[docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md)**.
 
 ---
 
-## Inicio rápido
+## Inicio rápido (un solo paso) ⭐
+
+Levanta broker + bridge + dashboard + simulador y abre el navegador:
+
+- **Windows:** doble clic en `scripts\demo.bat`
+- **macOS / Linux:** `bash scripts/demo.sh`
+
+La primera vez instala `uv` y las dependencias solo. Luego abre
+**http://localhost:8080**. `Ctrl-C` (o cerrar la ventana) detiene todo.
+
+<details>
+<summary>¿Prefieres hacerlo manual, comando por comando?</summary>
 
 ```bash
-# 0. Instalar uv (una sola vez). En Linux/macOS:
-#    curl -LsSf https://astral.sh/uv/install.sh | sh
-#    En Windows (PowerShell):
-#    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# 1. Instalar dependencias (uv crea el entorno solo, a partir de pyproject.toml)
 cd server
-uv sync
-
-# 2. Crear tu configuración
-cp config.example.yaml config.yaml       # ajusta mqtt.host si hace falta
-
-# 3. Generar un modelo de Gaphor de arranque
-uv run gemelo -c config.yaml init-model
-
-# 4. Arrancar el bridge (necesita un broker MQTT corriendo; ver la guía)
-uv run gemelo -c config.yaml run
-
-# 5. Sin hardware todavía: en otra terminal, simular sensores
-uv run gemelo -c config.yaml simulate
-
-# 6. Dashboard web en vivo (otra terminal): http://localhost:8080
-uv run gemelo -c config.yaml dashboard
+uv sync                                   # Python puro, sin compilar nada
+cp config.example.yaml config.yaml        # Windows: copy config.example.yaml config.yaml
+uv run gemelo -c config.yaml init-model   # genera el modelo .gaphor (sin Gaphor)
+uv run python tools/broker_local.py       # broker MQTT local (otra terminal)
+uv run gemelo -c config.yaml run          # bridge (otra terminal)
+uv run gemelo -c config.yaml dashboard    # dashboard -> http://localhost:8080
+uv run gemelo -c config.yaml simulate     # datos simulados (otra terminal)
 ```
+</details>
 
 Después abre `model/gemelo_aulas.gaphor` con **Gaphor** para ver los valores
 dentro de cada bloque, y/o el **dashboard** en el navegador para el estado en vivo.
@@ -125,17 +124,20 @@ Gaphor (mover, agrupar, añadir relaciones).
 project/
 ├── README.md                     ← este archivo
 ├── docs/                         ← documentación
-│   ├── GUIA_DE_USO.md            ← instalar y usar, paso a paso ⭐
+│   ├── INSTALACION.md            ← instalar por SO (Win/mac/Linux) ⭐
+│   ├── GUIA_DE_USO.md            ← usar todo, paso a paso
+│   ├── MODELO_GAPHOR.md          ← definir tu modelo / valores en el bloque
 │   ├── ARQUITECTURA.md           ← cómo funciona por dentro
 │   ├── PROTOCOLO_MQTT.md         ← formato de topics y mensajes JSON
 │   └── SENSORES.md               ← qué mide cada sensor
+├── scripts/                      ← demo de un clic (demo.sh / demo.bat)
 ├── firmware/esp32/               ← código para el ESP32 (Arduino/PlatformIO)
 │   ├── esp32_gemelo_digital.ino
 │   ├── config.example.h
 │   └── platformio.ini
-├── server/                       ← el bridge + dashboard (Python)
-│   ├── gemelo/                   ← paquete principal
-│   ├── tools/simulate_esp32.py   ← simulador (probar sin hardware)
+├── server/                       ← el bridge + dashboard (Python puro)
+│   ├── gemelo/                   ← paquete principal (incl. gaphor_xml.py)
+│   ├── tools/                    ← simulador + broker MQTT local
 │   ├── config.example.yaml
 │   ├── pyproject.toml            ← dependencias (uv)
 │   └── uv.lock                   ← versiones exactas bloqueadas
@@ -164,6 +166,7 @@ Desde `server/`, con `uv run gemelo -c config.yaml <comando>`:
 
 | Documento | Para qué |
 |-----------|----------|
+| [INSTALACION.md](docs/INSTALACION.md) | Instalar en Windows / macOS / Linux (y errores comunes) |
 | [GUIA_DE_USO.md](docs/GUIA_DE_USO.md) | Instalar y correr todo, paso a paso (todas las carreras) |
 | [MODELO_GAPHOR.md](docs/MODELO_GAPHOR.md) | Definir tu propio modelo y cómo los datos aparecen dentro del bloque |
 | [ARQUITECTURA.md](docs/ARQUITECTURA.md) | Cómo funciona por dentro y por qué |
@@ -175,5 +178,10 @@ Desde `server/`, con `uv run gemelo -c config.yaml <comando>`:
 ```bash
 cd server
 uv sync
+uv run pytest ../tests -q                 # núcleo (los tests que usan Gaphor se saltan)
+
+# Suite completa, incluyendo la validación round-trip contra Gaphor real
+# (requiere el extra 'gaphor'; fácil en Linux):
+uv sync --extra gaphor
 uv run pytest ../tests -q
 ```
