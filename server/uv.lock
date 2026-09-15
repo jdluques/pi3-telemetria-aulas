@@ -270,29 +270,32 @@ name = "gemelo-aulas"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "gaphor" },
+    { name = "amqtt" },
     { name = "paho-mqtt" },
     { name = "pyyaml" },
 ]
 
+[package.optional-dependencies]
+gaphor = [
+    { name = "gaphor" },
+]
+
 [package.dev-dependencies]
 dev = [
-    { name = "amqtt" },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "gaphor", specifier = ">=3.0" },
+    { name = "amqtt", specifier = ">=0.11" },
+    { name = "gaphor", marker = "extra == 'gaphor'", specifier = ">=3.0" },
     { name = "paho-mqtt", specifier = ">=1.6,<3" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]
+provides-extras = ["gaphor"]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "amqtt", specifier = ">=0.11" },
-    { name = "pytest", specifier = ">=7.0" },
-]
+dev = [{ name = "pytest", specifier = ">=7.0" }]
 
 [[package]]
 name = "generic"
