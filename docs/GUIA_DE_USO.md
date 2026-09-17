@@ -186,7 +186,12 @@ Empezará a publicar datos. En la Terminal 1 verás llegar las lecturas y, cada
 Abre el archivo `model/gemelo_aulas.gaphor` con la **app de escritorio de
 Gaphor** (instálala desde <https://gaphor.org/download/>; en Windows/macOS es un
 instalador normal, sin MSYS ni build tools). Basta doble clic en el archivo, o
-*Archivo → Abrir* dentro de Gaphor.
+*Archivo → Abrir* dentro de Gaphor. Si tienes el comando `gaphor` disponible,
+también puedes abrirlo desde la terminal (en la raíz del proyecto):
+
+```bash
+gaphor model/gemelo_aulas.gaphor
+```
 
 En Gaphor:
 1. Abre el diagrama **"Gemelo Digital - Aulas"** (doble clic en el árbol de la izquierda).
@@ -196,6 +201,11 @@ En Gaphor:
    con la hora. La sección **Note** del panel derecho guarda la descripción del sensor.
 3. Para ver valores nuevos, **cierra y reabre** el modelo (o vuelve a abrir el
    archivo): Gaphor no recarga solo mientras el bridge escribe por debajo.
+
+> ⚠️ **No guardes desde Gaphor mientras el bridge está corriendo**: tu guardado y
+> el del bridge se pisarían. Ábrelo solo para mirar. Si quieres **editar** el
+> diagrama (mover cajas, renombrar, etc.), detén el bridge un momento (`Ctrl-C`),
+> edita y guarda, y vuelve a arrancarlo.
 
 > ¿Quieres tu propio diagrama con otros nombres? El bridge crea y rellena esas
 > value properties solo; tú solo aseguras el nombre del bloque. Ver
